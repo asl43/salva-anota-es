@@ -1,0 +1,707 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sistema de Anotações PRO</title>
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.container {
+  width: 100%;
+  max-width: 600px;
+  margin: auto;
+}
+
+.box {
+  background: #fff;
+  padding: 30px;
+  border-radius: 16px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+h2 {
+  color: #333;
+  margin-bottom: 20px;
+  font-size: 24px;
+  text-align: center;
+}
+
+.input-group {
+  margin-bottom: 15px;
+}
+
+label {
+  display: block;
+  margin-bottom: 5px;
+  color: #555;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+input, textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.3s;
+  font-family: inherit;
+}
+
+input:focus, textarea:focus {
+  outline: none;
+  border-color: #667eea;
+  box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+}
+
+textarea {
+  resize: vertical;
+  min-height: 120px;
+}
+
+button {
+  width: 100%;
+  padding: 14px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s;
+  margin-top: 10px;
+}
+
+button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+}
+
+button:active {
+  transform: translateY(0);
+}
+
+button.secondary {
+  background: #fff;
+  color: #667eea;
+  border: 2px solid #667eea;
+}
+
+button.secondary:hover {
+  background: #f8f9ff;
+}
+
+button.danger {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+}
+
+.hidden {
+  display: none;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 15px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  font-size: 14px;
+}
+
+.status-indicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.status-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+.status-dot.online {
+  background: #4caf50;
+}
+
+.status-dot.offline {
+  background: #f44336;
+  animation: none;
+}
+
+.status-dot.checking {
+  background: #ff9800;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 15px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+}
+
+.user-details {
+  flex: 1;
+}
+
+.user-name {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+.user-time {
+  font-size: 12px;
+  opacity: 0.9;
+}
+
+.logout-btn {
+  background: rgba(255,255,255,0.2);
+  border: 1px solid rgba(255,255,255,0.3);
+  padding: 6px 12px;
+  font-size: 12px;
+  width: auto;
+  margin: 0;
+}
+
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.search-box input {
+  flex: 1;
+  margin: 0;
+}
+
+.search-box button {
+  width: auto;
+  padding: 12px 25px;
+  margin: 0;
+}
+
+.resultado {
+  background: #f8f9ff;
+  padding: 15px;
+  margin-top: 10px;
+  border-radius: 8px;
+  border-left: 4px solid #667eea;
+  animation: fadeIn 0.3s;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.resultado-header {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+  font-size: 12px;
+  color: #666;
+}
+
+.resultado-nome {
+  font-weight: 600;
+  color: #667eea;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+
+.resultado-texto {
+  color: #333;
+  line-height: 1.5;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+  color: #999;
+}
+
+.empty-state-icon {
+  font-size: 48px;
+  margin-bottom: 10px;
+}
+
+.char-counter {
+  text-align: right;
+  font-size: 12px;
+  color: #999;
+  margin-top: 5px;
+}
+
+.char-counter.warning {
+  color: #ff9800;
+}
+
+.char-counter.danger {
+  color: #f44336;
+}
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: #333;
+  color: white;
+  padding: 15px 20px;
+  border-radius: 8px;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  animation: slideInRight 0.3s;
+  z-index: 1000;
+  max-width: 300px;
+}
+
+.toast.success {
+  background: #4caf50;
+}
+
+.toast.error {
+  background: #f44336;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.loading {
+  display: inline-block;
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255,255,255,0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+  margin-top: 15px;
+}
+
+.stat-card {
+  background: #f8f9ff;
+  padding: 15px;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 24px;
+  font-weight: bold;
+  color: #667eea;
+}
+
+.stat-label {
+  font-size: 12px;
+  color: #666;
+  margin-top: 5px;
+}
+
+@media (max-width: 600px) {
+  .box {
+    padding: 20px;
+  }
+  
+  .search-box {
+    flex-direction: column;
+  }
+  
+  .search-box button {
+    width: 100%;
+  }
+}
+</style>
+</head>
+<body>
+<div class="container">
+  <!-- TELA 1: LOGIN -->
+  <div class="box" id="tela1">
+    <h2>📝 Sistema de Anotações</h2>
+    <div class="input-group">
+      <label for="nome">Seu nome</label>
+      <input 
+        id="nome" 
+        placeholder="Digite seu nome completo" 
+        autocomplete="name"
+        maxlength="50"
+      >
+    </div>
+    <button onclick="entrar()">Entrar no Sistema</button>
+  </div>
+
+  <!-- TELA 2: SISTEMA PRINCIPAL -->
+  <div class="box hidden" id="tela2">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar"></div>
+      <div class="user-details">
+        <div class="user-name" id="userName"></div>
+        <div class="user-time" id="userTime"></div>
+      </div>
+      <button class="logout-btn" onclick="sair()">Sair</button>
+    </div>
+
+    <div class="status-bar">
+      <div class="status-indicator">
+        <div class="status-dot checking" id="statusDot"></div>
+        <span id="statusText">Verificando conexão...</span>
+      </div>
+      <span id="lastSync"></span>
+    </div>
+
+    <div class="input-group">
+      <label for="anotacao">Nova Anotação</label>
+      <textarea 
+        id="anotacao" 
+        placeholder="Digite sua anotação aqui..."
+        maxlength="500"
+        oninput="atualizarContador()"
+      ></textarea>
+      <div class="char-counter" id="charCounter">0 / 500 caracteres</div>
+    </div>
+    
+    <button onclick="salvar()" id="btnSalvar">
+      💾 Salvar Anotação
+    </button>
+
+    <div class="stats hidden" id="stats">
+      <div class="stat-card">
+        <div class="stat-value" id="totalAnotacoes">0</div>
+        <div class="stat-label">Anotações Salvas</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-value" id="anotacoesHoje">0</div>
+        <div class="stat-label">Hoje</div>
+      </div>
+    </div>
+
+    <div class="search-box">
+      <input 
+        id="pesquisa" 
+        placeholder="Pesquisar anotações..."
+        onkeypress="if(event.key==='Enter') buscar()"
+      >
+      <button onclick="buscar()" class="secondary">
+        🔍 Buscar
+      </button>
+    </div>
+
+    <div id="resultado"></div>
+  </div>
+</div>
+
+<script>
+// Configuração da API (substitua pela sua URL)
+const API = "https://script.google.com/macros/s/AKfycbxlKPvdlVdQeaVT0IG1_ftAfhLmxTEAxzxwAb7c4zKRE81wYD8YVXRmD6uMXVoZOOA/exec";
+
+// Variáveis globais
+let usuario = "";
+let conexaoOnline = false;
+let totalAnotacoes = 0;
+let anotacoesHoje = 0;
+
+// Função de entrada no sistema
+function entrar() {
+  usuario = document.getElementById("nome").value.trim();
+  
+  if (!usuario) {
+    mostrarToast("Por favor, digite seu nome", "error");
+    return;
+  }
+  
+  if (usuario.length < 3) {
+    mostrarToast("Nome deve ter no mínimo 3 caracteres", "error");
+    return;
+  }
+  
+  // Salvar no localStorage
+  localStorage.setItem("usuario", usuario);
+  localStorage.setItem("ultimoAcesso", new Date().toISOString());
+  
+  // Transição de telas
+  document.getElementById("tela1").classList.add("hidden");
+  document.getElementById("tela2").classList.remove("hidden");
+  
+  // Configurar informações do usuário
+  const iniciais = usuario.split(" ").map(n => n[0]).join("").substring(0, 2).toUpperCase();
+  document.getElementById("userAvatar").textContent = iniciais;
+  document.getElementById("userName").textContent = usuario;
+  atualizarHorario();
+  
+  // Verificar conexão
+  verificarConexao();
+  setInterval(verificarConexao, 30000); // Verifica a cada 30 segundos
+  
+  // Atualizar horário a cada minuto
+  setInterval(atualizarHorario, 60000);
+  
+  mostrarToast(`Bem-vindo(a), ${usuario}!`, "success");
+}
+
+// Atualizar horário
+function atualizarHorario() {
+  const agora = new Date();
+  const horario = agora.toLocaleTimeString("pt-BR", { 
+    hour: "2-digit", 
+    minute: "2-digit" 
+  });
+  document.getElementById("userTime").textContent = `Conectado às ${horario}`;
+}
+
+// Contador de caracteres
+function atualizarContador() {
+  const textarea = document.getElementById("anotacao");
+  const contador = document.getElementById("charCounter");
+  const atual = textarea.value.length;
+  const max = 500;
+  
+  contador.textContent = `${atual} / ${max} caracteres`;
+  
+  if (atual > max * 0.9) {
+    contador.classList.add("danger");
+    contador.classList.remove("warning");
+  } else if (atual > max * 0.7) {
+    contador.classList.add("warning");
+    contador.classList.remove("danger");
+  } else {
+    contador.classList.remove("warning", "danger");
+  }
+}
+
+// Função de salvar
+async function salvar() {
+  const anotacao = document.getElementById("anotacao").value.trim();
+  
+  if (!anotacao) {
+    mostrarToast("Digite uma anotação antes de salvar", "error");
+    return;
+  }
+  
+  const btn = document.getElementById("btnSalvar");
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading"></div> Salvando...';
+  
+  const agora = new Date();
+  const dados = {
+    data: agora.toLocaleDateString("pt-BR"),
+    hora: agora.toLocaleTimeString("pt-BR"),
+    nome: usuario,
+    anotacao: anotacao
+  };
+  
+  try {
+    const response = await fetch(API, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(dados)
+    });
+    
+    if (response.ok) {
+      mostrarToast("Anotação salva com sucesso!", "success");
+      document.getElementById("anotacao").value = "";
+      atualizarContador();
+      
+      // Atualizar estatísticas
+      totalAnotacoes++;
+      anotacoesHoje++;
+      atualizarEstatisticas();
+      
+      // Atualizar última sincronização
+      document.getElementById("lastSync").textContent = "Agora";
+    } else {
+      throw new Error("Erro ao salvar");
+    }
+  } catch (error) {
+    console.error("Erro:", error);
+    mostrarToast("Erro ao salvar. Tente novamente.", "error");
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = "💾 Salvar Anotação";
+  }
+}
+
+// Função de busca
+async function buscar() {
+  const query = document.getElementById("pesquisa").value.trim();
+  const resultadoDiv = document.getElementById("resultado");
+  
+  if (!query) {
+    mostrarToast("Digite algo para pesquisar", "error");
+    return;
+  }
+  
+  resultadoDiv.innerHTML = '<div class="empty-state"><div class="loading"></div><p>Buscando...</p></div>';
+  
+  try {
+    const response = await fetch(API + "?q=" + encodeURIComponent(query));
+    const dados = await response.json();
+    
+    if (dados.length === 0) {
+      resultadoDiv.innerHTML = `
+        <div class="empty-state">
+          <div class="empty-state-icon">🔍</div>
+          <p>Nenhuma anotação encontrada</p>
+        </div>
+      `;
+      return;
+    }
+    
+    resultadoDiv.innerHTML = "";
+    dados.forEach(linha => {
+      const div = document.createElement("div");
+      div.className = "resultado";
+      div.innerHTML = `
+        <div class="resultado-header">
+          <span>📅 ${linha[0]} às ${linha[1]}</span>
+        </div>
+        <div class="resultado-nome">${linha[2]}</div>
+        <div class="resultado-texto">${linha[3]}</div>
+      `;
+      resultadoDiv.appendChild(div);
+    });
+    
+    mostrarToast(`${dados.length} resultado(s) encontrado(s)`, "success");
+  } catch (error) {
+    console.error("Erro:", error);
+    resultadoDiv.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">⚠️</div>
+        <p>Erro ao buscar. Verifique sua conexão.</p>
+      </div>
+    `;
+  }
+}
+
+// Verificar conexão com a API
+async function verificarConexao() {
+  const statusDot = document.getElementById("statusDot");
+  const statusText = document.getElementById("statusText");
+  
+  try {
+    const response = await fetch(API, { method: "GET" });
+    
+    if (response.ok) {
+      conexaoOnline = true;
+      statusDot.className = "status-dot online";
+      statusText.textContent = "Conectado";
+      
+      // Mostrar estatísticas
+      document.getElementById("stats").classList.remove("hidden");
+    } else {
+      throw new Error("Conexão falhou");
+    }
+  } catch (error) {
+    conexaoOnline = false;
+    statusDot.className = "status-dot offline";
+    statusText.textContent = "Offline";
+    console.error("Erro de conexão:", error);
+  }
+}
+
+// Atualizar estatísticas
+function atualizarEstatisticas() {
+  document.getElementById("totalAnotacoes").textContent = totalAnotacoes;
+  document.getElementById("anotacoesHoje").textContent = anotacoesHoje;
+}
+
+// Função de logout
+function sair() {
+  if (confirm("Deseja realmente sair do sistema?")) {
+    localStorage.removeItem("usuario");
+    location.reload();
+  }
+}
+
+// Mostrar notificação toast
+function mostrarToast(mensagem, tipo = "success") {
+  const toast = document.createElement("div");
+  toast.className = `toast ${tipo}`;
+  toast.textContent = mensagem;
+  document.body.appendChild(toast);
+  
+  setTimeout(() => {
+    toast.style.animation = "slideInRight 0.3s reverse";
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+
+// Carregar usuário salvo ao iniciar
+window.onload = function() {
+  const usuarioSalvo = localStorage.getItem("usuario");
+  if (usuarioSalvo) {
+    document.getElementById("nome").value = usuarioSalvo;
+  }
+};
+</script>
+</body>
+</html>
