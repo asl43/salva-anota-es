@@ -366,6 +366,15 @@ button.danger {
   margin-top: 5px;
 }
 
+.pending-badge {
+  background: #ff9800;
+  color: white;
+  font-size: 10px;
+  padding: 2px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+}
+
 @media (max-width: 600px) {
   .box {
     padding: 20px;
@@ -413,6 +422,7 @@ button.danger {
       <div class="status-indicator">
         <div class="status-dot checking" id="statusDot"></div>
         <span id="statusText">Verificando conexão...</span>
+        <span class="pending-badge hidden" id="pendingBadge">0 pendente(s)</span>
       </div>
       <span id="lastSync"></span>
     </div>
@@ -423,7 +433,7 @@ button.danger {
         id="anotacao" 
         placeholder="Digite sua anotação aqui..."
         maxlength="500"
-        oninput="atualizarContador()"
+        oninput="atualizarContador(true)"
       ></textarea>
       <div class="char-counter" id="charCounter">0 / 500 caracteres</div>
     </div>
@@ -446,7 +456,7 @@ button.danger {
     <div class="search-box">
       <input 
         id="pesquisa" 
-        placeholder="Pesquisar anotações..."
+        placeholder="Pesquisar anotações ou @nome..."
         onkeypress="if(event.key==='Enter') buscar()"
       >
       <button onclick="buscar()" class="secondary">
@@ -459,14 +469,16 @@ button.danger {
 </div>
 
 <script>
-// Configuração da API (substitua pela sua URL)
-const API = "https://script.google.com/macros/s/AKfycbygBAA8FzEtWtnoqGB4wJjUZcpjtJ_5xDduC07_scvNuAahmJbqT52P_n_epNO2QfY/exec";
+// ⚠️ CONFIGURAÇÃO IMPORTANTE: Cole aqui a URL do seu Google Apps Script
+// Exemplo: const API = "https://script.google.com/macros/s/AKfycbx.../exec";
+const API = "https://script.google.com/macros/s/AKfycbwIKHho8i1lM1NhPtOgiMDgbqZYBh2BPprt7t9e0L18fH7qIoxFzdNhwn3J-rIMcg0I/exec";
 
 // Variáveis globais
 let usuario = "";
 let conexaoOnline = false;
 let totalAnotacoes = 0;
 let anotacoesHoje = 0;
+let pendentes = [];
 
 // Função de entrada no sistema
 function entrar() {
@@ -498,30 +510,34 @@ function entrar() {
   
   // Verificar conexão
   verificarConexao();
-  setInterval(verificarConexao, 30000); // Verifica a cada 30 segundos
-  
-  // Atualizar horário a cada minuto
+  setInterval(verificarConexao, 30000);
   setInterval(atualizarHorario, 60000);
+  
+  // Carregar estatísticas reais
+  carregarEstatisticas();
+  
+  // Carregar e processar pendentes
+  carregarPendentes();
   
   mostrarToast(`Bem-vindo(a), ${usuario}!`, "success");
 }
 
-// Atualizar horário
 function atualizarHorario() {
   const agora = new Date();
-  const horario = agora.toLocaleTimeString("pt-BR", { 
-    hour: "2-digit", 
-    minute: "2-digit" 
-  });
+  const horario = agora.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
   document.getElementById("userTime").textContent = `Conectado às ${horario}`;
 }
 
-// Contador de caracteres
-function atualizarContador() {
+function atualizarContador(enforceLimit = false) {
   const textarea = document.getElementById("anotacao");
   const contador = document.getElementById("charCounter");
-  const atual = textarea.value.length;
+  let atual = textarea.value.length;
   const max = 500;
+  
+  if (enforceLimit && atual > max) {
+    textarea.value = textarea.value.substring(0, max);
+    atual = max;
+  }
   
   contador.textContent = `${atual} / ${max} caracteres`;
   
@@ -536,61 +552,130 @@ function atualizarContador() {
   }
 }
 
-// Função de salvar
+// Função para carregar estatísticas do servidor
+async function carregarEstatisticas() {
+  try {
+    const response = await fetch(`${API}?acao=estatisticas&usuario=${encodeURIComponent(usuario)}`);
+    if (response.ok) {
+      const stats = await response.json();
+      totalAnotacoes = stats.total || 0;
+      anotacoesHoje = stats.hoje || 0;
+      document.getElementById("stats").classList.remove("hidden");
+      atualizarEstatisticas();
+    }
+  } catch (e) {
+    console.warn("Falha ao carregar estatísticas");
+  }
+}
+
 async function salvar() {
   const anotacao = document.getElementById("anotacao").value.trim();
-  
   if (!anotacao) {
     mostrarToast("Digite uma anotação antes de salvar", "error");
     return;
   }
-  
-  const btn = document.getElementById("btnSalvar");
-  btn.disabled = true;
-  btn.innerHTML = '<div class="loading"></div> Salvando...';
-  
+
   const agora = new Date();
   const dados = {
+    acao: "salvar",
     data: agora.toLocaleDateString("pt-BR"),
     hora: agora.toLocaleTimeString("pt-BR"),
     nome: usuario,
     anotacao: anotacao
   };
-  
+
+  if (conexaoOnline) {
+    await salvarNoServidor(dados);
+  } else {
+    salvarOffline(dados);
+  }
+}
+
+async function salvarNoServidor(dados) {
+  const btn = document.getElementById("btnSalvar");
+  btn.disabled = true;
+  btn.innerHTML = '<div class="loading"></div> Salvando...';
+
   try {
     const response = await fetch(API, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(dados)
     });
-    
+
     if (response.ok) {
       mostrarToast("Anotação salva com sucesso!", "success");
       document.getElementById("anotacao").value = "";
       atualizarContador();
-      
-      // Atualizar estatísticas
+
       totalAnotacoes++;
       anotacoesHoje++;
       atualizarEstatisticas();
-      
-      // Atualizar última sincronização
       document.getElementById("lastSync").textContent = "Agora";
     } else {
       throw new Error("Erro ao salvar");
     }
   } catch (error) {
     console.error("Erro:", error);
-    mostrarToast("Erro ao salvar. Tente novamente.", "error");
+    salvarOffline(dados);
   } finally {
     btn.disabled = false;
     btn.innerHTML = "💾 Salvar Anotação";
   }
 }
 
-// Função de busca
+function salvarOffline(dados) {
+  pendentes.push(dados);
+  localStorage.setItem("anotacoesPendentes", JSON.stringify(pendentes));
+  atualizarBadgePendentes();
+  mostrarToast("Salvo offline. Será enviado quando houver conexão.", "success");
+  document.getElementById("anotacao").value = "";
+  atualizarContador();
+}
+
+function atualizarBadgePendentes() {
+  const badge = document.getElementById("pendingBadge");
+  if (pendentes.length > 0) {
+    badge.textContent = `${pendentes.length} pendente(s)`;
+    badge.classList.remove("hidden");
+  } else {
+    badge.classList.add("hidden");
+  }
+}
+
+function carregarPendentes() {
+  const salvos = localStorage.getItem("anotacoesPendentes");
+  pendentes = salvos ? JSON.parse(salvos) : [];
+  atualizarBadgePendentes();
+}
+
+// Sincroniza pendentes ao voltar online
+async function sincronizarPendentes() {
+  if (pendentes.length === 0) return;
+
+  for (const item of [...pendentes]) {
+    try {
+      const response = await fetch(API, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(item)
+      });
+      if (response.ok) {
+        pendentes.splice(pendentes.indexOf(item), 1);
+        localStorage.setItem("anotacoesPendentes", JSON.stringify(pendentes));
+        totalAnotacoes++;
+        // Recarregar estatísticas para garantir precisão
+        setTimeout(carregarEstatisticas, 1000);
+      } else {
+        break;
+      }
+    } catch (e) {
+      break;
+    }
+  }
+  atualizarBadgePendentes();
+}
+
 async function buscar() {
   const query = document.getElementById("pesquisa").value.trim();
   const resultadoDiv = document.getElementById("resultado");
@@ -602,11 +687,20 @@ async function buscar() {
   
   resultadoDiv.innerHTML = '<div class="empty-state"><div class="loading"></div><p>Buscando...</p></div>';
   
+  let url = API;
+  if (query.startsWith("@")) {
+    const nome = query.substring(1).trim();
+    url += `?acao=buscar&usuario=${encodeURIComponent(nome)}`;
+  } else {
+    url += `?acao=buscar&q=${encodeURIComponent(query)}`;
+  }
+
   try {
-    const response = await fetch(API + "?q=" + encodeURIComponent(query));
+    const response = await fetch(url);
     const dados = await response.json();
     
-    if (dados.length === 0) {
+    resultadoDiv.innerHTML = "";
+    if (!Array.isArray(dados) || dados.length === 0) {
       resultadoDiv.innerHTML = `
         <div class="empty-state">
           <div class="empty-state-icon">🔍</div>
@@ -616,7 +710,6 @@ async function buscar() {
       return;
     }
     
-    resultadoDiv.innerHTML = "";
     dados.forEach(linha => {
       const div = document.createElement("div");
       div.className = "resultado";
@@ -642,47 +735,41 @@ async function buscar() {
   }
 }
 
-// Verificar conexão com a API
 async function verificarConexao() {
   const statusDot = document.getElementById("statusDot");
   const statusText = document.getElementById("statusText");
   
   try {
     const response = await fetch(API, { method: "GET" });
-    
     if (response.ok) {
       conexaoOnline = true;
       statusDot.className = "status-dot online";
       statusText.textContent = "Conectado";
-      
-      // Mostrar estatísticas
       document.getElementById("stats").classList.remove("hidden");
+      await sincronizarPendentes();
     } else {
-      throw new Error("Conexão falhou");
+      throw new Error("Falha na resposta");
     }
   } catch (error) {
     conexaoOnline = false;
     statusDot.className = "status-dot offline";
     statusText.textContent = "Offline";
-    console.error("Erro de conexão:", error);
   }
 }
 
-// Atualizar estatísticas
 function atualizarEstatisticas() {
   document.getElementById("totalAnotacoes").textContent = totalAnotacoes;
   document.getElementById("anotacoesHoje").textContent = anotacoesHoje;
 }
 
-// Função de logout
 function sair() {
   if (confirm("Deseja realmente sair do sistema?")) {
     localStorage.removeItem("usuario");
+    localStorage.removeItem("anotacoesPendentes");
     location.reload();
   }
 }
 
-// Mostrar notificação toast
 function mostrarToast(mensagem, tipo = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${tipo}`;
@@ -695,12 +782,12 @@ function mostrarToast(mensagem, tipo = "success") {
   }, 3000);
 }
 
-// Carregar usuário salvo ao iniciar
 window.onload = function() {
   const usuarioSalvo = localStorage.getItem("usuario");
   if (usuarioSalvo) {
     document.getElementById("nome").value = usuarioSalvo;
   }
+  carregarPendentes();
 };
 </script>
 </body>
